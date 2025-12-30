@@ -1,4 +1,4 @@
-# CyberArk Conjur Enterprise - Demo Lab Setup Scripts
+# CyberArk Conjur Enterprise - Deployment Scripts
 
 This repository contains a professional suite of automated scripts designed to deploy and configure a **CyberArk Conjur Enterprise (Secrets Manager)** environment. It is optimized for Lab, Research, and Demo purposes, following CyberArk's production-grade recommendations and the latest v13.7/15.0 standards.
 
