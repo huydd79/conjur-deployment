@@ -70,7 +70,7 @@ if command -v "$CONTAINER_MGR" &> /dev/null; then
 else
     echo -e "${YELLOW}Not Found. Attempting to install ${CONTAINER_MGR}...${NC}"
     if [[ "$CONTAINER_MGR" == "podman" ]]; then
-        $SUDO $INSTALL_CMD podman &> /dev/null
+        $SUDO $INSTALL_CMD podman 
     elif [[ "$CONTAINER_MGR" == "docker" ]]; then
         [[ "$PKG_MANAGER" == "apt-get" ]] && $SUDO $INSTALL_CMD docker.io || $SUDO $INSTALL_CMD docker 
     fi
