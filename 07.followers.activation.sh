@@ -24,7 +24,7 @@ CLUSTER_FQDN=$CONJUR_LEADER_FQDN
 echo -e "${BLUE}[PRE-CHECK]${NC} Verifying Cluster Connectivity ($CLUSTER_FQDN)..."
 
 # 1. Check HTTPS Health (API Layer)
-echo -ne "  -> API Health (443): "
+echo -ne "  -> API Health (444): "
 HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
 if [[ "$HTTP_STATUS" == "200" ]]; then
     echo -e "${GREEN}OK${NC}"
@@ -44,6 +44,17 @@ else
     ERROR_FOUND=true
 fi
 
+# 3. Check Postgres Port (Replication Layer)
+echo -ne "  -> Audit Stream Port (1999): "
+# nc -z: scan mode, -w 3: timeout 3 seconds
+nc -z -w 3 "$CLUSTER_FQDN" 1999 > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    echo -e "${GREEN}OPEN${NC}"
+else
+    echo -e "${RED}CLOSED${NC}"
+    ERROR_FOUND=true
+fi
+
 # Final Decision for Pre-check
 if [[ "$ERROR_FOUND" == true ]]; then
     echo -e "--------------------------------------------------------"
@@ -53,7 +64,7 @@ if [[ "$ERROR_FOUND" == true ]]; then
     exit 1
 fi
 echo -e "${GREEN}[SUCCESS] All Cluster ports are reachable. Proceeding...${NC}"
-# ==========================================================
+# === DONE PRECHECK ==============================================
 
 for i in "${!FOLLOWER_NODES[@]}"; do
     F_NAME="${FOLLOWER_NODES[$i]}"
