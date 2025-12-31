@@ -1,7 +1,7 @@
 #!/bin/bash
 # Author: Huy Do (huy.do@cyberark.com)
 # Date: December 31, 2025
-# Description: Generate a management script and link it to /usr/bin for global access.
+# Description: Generate an advanced management script with Node Role Detection.
 
 # --- Source Configuration ---
 if [ -f "./00.config.sh" ]; then
@@ -11,7 +11,7 @@ else
     exit 1
 fi
 
-echo -e "${YELLOW}--- Starting Step 09: Generating Operations Tool & System Link ---${NC}"
+echo -e "${YELLOW}--- Starting Step 09: Generating Advanced Operations Tool ---${NC}"
 
 OUTPUT_FILE="conjur-ctl.sh"
 SYSTEM_LINK="/usr/bin/conjur-ctl"
@@ -23,7 +23,7 @@ cat << EOF > $OUTPUT_FILE
 # Generated on: $(date)
 
 # ANSI Color Codes
-BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
 case "\$1" in
     start)
@@ -43,13 +43,41 @@ case "\$1" in
         echo -e "\${CYAN}            Conjur Node Status: $NODE_NAME              \${NC}"
         echo -e "\${CYAN}========================================================\${NC}"
         
+        # Check Container Runtime Status
         CONTAINER_STATUS=\$($SUDO $CONTAINER_MGR inspect $NODE_NAME --format '{{.State.Status}}' 2>/dev/null)
+        
         if [ "\$CONTAINER_STATUS" == "running" ]; then
             echo -e " Container State : \${GREEN}RUNNING\${NC}"
+            
+            # Detect Internal Conjur Role
+            RAW_ROLE=\$($SUDO $CONTAINER_MGR exec $NODE_NAME evoke role show 2>/dev/null)
+            
+            case "\$RAW_ROLE" in
+                master)
+                    FRIENDLY_ROLE="\${GREEN}\${BOLD}PRIMARY LEADER\${NC}"
+                    ;;
+                standby)
+                    FRIENDLY_ROLE="\${BLUE}\${BOLD}STANDBY NODE\${NC}"
+                    ;;
+                follower)
+                    FRIENDLY_ROLE="\${CYAN}\${BOLD}FOLLOWER NODE\${NC}"
+                    ;;
+                blank)
+                    FRIENDLY_ROLE="\${YELLOW}UNCONFIGURED (BLANK)\${NC}"
+                    ;;
+                *)
+                    FRIENDLY_ROLE="\${RED}UNKNOWN\${NC} (\$RAW_ROLE)"
+                    ;;
+            esac
+            
+            echo -e " Conjur Role     : \$FRIENDLY_ROLE"
             echo -e "--------------------------------------------------------"
-            $SUDO $CONTAINER_MGR exec $NODE_NAME evoke status 2>/dev/null | grep -E "role|status|database"
+            
+            # Display core service status from evoke
+            $SUDO $CONTAINER_MGR exec $NODE_NAME evoke status 2>/dev/null | grep -E "status|database"
         else
             echo -e " Container State : \${RED}\${CONTAINER_STATUS^^}\${NC}"
+            echo -e " Conjur Role     : \${RED}OFFLINE\${NC}"
         fi
         echo -e "--------------------------------------------------------"
         $SUDO $CONTAINER_MGR ps -f name=$NODE_NAME
@@ -67,21 +95,21 @@ chmod +x $OUTPUT_FILE
 # --- 3. Link to /usr/bin for Global Execution ---
 echo -e "${BLUE}[INFO]${NC} Linking script to ${SYSTEM_LINK}..."
 
-# Remove existing link if it exists to avoid errors
 if [ -L "$SYSTEM_LINK" ] || [ -f "$SYSTEM_LINK" ]; then
     $SUDO rm -f "$SYSTEM_LINK"
 fi
 
-# Create the symbolic link using the absolute path of the generated script
+# Create symbolic link using the absolute path of the generated script
 $SUDO ln -s "$(pwd)/$OUTPUT_FILE" "$SYSTEM_LINK"
 
-# --- 4. Final Verification ---
+# --- 4. Final Verification and Display Usage ---
 if [ -L "$SYSTEM_LINK" ]; then
     echo -e "${GREEN}[SUCCESS]${NC} Global command 'conjur-ctl' is now available."
     echo -e "${BLUE}[USAGE]${NC} You can now run these commands from anywhere:"
-    echo -e "         conjur-ctl status"
-    echo -e "         conjur-ctl stop"
-    echo -e "         conjur-ctl start"
+    echo -e "         ${BOLD}conjur-ctl status${NC}  -> Check container & cluster role"
+    echo -e "         ${BOLD}conjur-ctl stop${NC}    -> Stop the Conjur service"
+    echo -e "         ${BOLD}conjur-ctl start${NC}   -> Start the Conjur service"
+    echo -e "         ${BOLD}conjur-ctl restart${NC} -> Restart the Conjur service"
 else
     echo -e "${RED}[ERROR]${NC} Failed to create system link in /usr/bin. Check sudo permissions."
     exit 1
