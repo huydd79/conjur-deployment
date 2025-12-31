@@ -29,9 +29,10 @@ Before starting, ensure the following are prepared:
 
 All scripts rely on **`00.config.sh`**. Modify this file first with your specific IPs, DNS names, and credentials. Ensure `READY=true` is set before execution.
 
-```bash
-# Key parameters in 00.config.sh
-CONJUR_DOMAIN=poc.local
-PRIMARY_IP=172.16.100.62
-STANDBY_IPS=("172.16.100.63" "172.16.100.64")
-CONJUR_ADMIN_PW="ChangeMe123!!"
+
+## HOW TO:
+Refer to this video recording for detail
+https://youtu.be/2nvF2HD40o8
+
+# Author: Huy Do (huy.do@cyberark.com)
+# Tested: December 2025
