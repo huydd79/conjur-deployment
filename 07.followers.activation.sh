@@ -16,7 +16,7 @@ fi
 echo -e "${YELLOW}--- Starting Step 12: Follower Activation (Internal CA Mode) ---${NC}"
 
 SSH_USER="root"
-CLUSTER_FQDN="conjur-leader.${CONJUR_DOMAIN}"
+CLUSTER_FQDN=$CONJUR_LEADER_FQDN
 
 # ==========================================================
 # NEW STEP: CLUSTER HEALTH PRE-CHECK

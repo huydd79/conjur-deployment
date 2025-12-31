@@ -106,7 +106,7 @@ add_or_update_host_entry() {
 }
 
 # Add Leader VIP Entry
-CLUSTER_NAME="conjur-leader" 
+CLUSTER_NAME=$CONJUR_LEADER_FQDN
 if [ -n "$LEADER_VIP" ] && [ -n "$CLUSTER_NAME" ]; then
     add_or_update_host_entry "$LEADER_VIP" "$CLUSTER_NAME"
 else

@@ -15,7 +15,7 @@ fi
 echo -e "${YELLOW}--- Starting Step 06: Standby Activation Process ---${NC}"
 
 SSH_USER="root"
-CLUSTER_FQDN="conjur-leader.${CONJUR_DOMAIN}"
+CLUSTER_FQDN=$CONJUR_LEADER_FQDN
 
 # --- PRE-CHECK CLUSTER HEALTH ---
 echo -ne "${BLUE}[PRE-CHECK]${NC} Verifying Cluster VIP ($CLUSTER_FQDN)... "

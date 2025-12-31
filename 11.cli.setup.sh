@@ -47,7 +47,7 @@ fi
 
 # --- Step 4: Host Resolution for CLI ---
 # Ensuring the CLI can resolve the cluster DNS locally
-CONJUR_FQDN="conjur-leader.${CONJUR_DOMAIN}"
+CONJUR_FQDN=$CONJUR_LEADER_FQDN
 echo -e "${BLUE}[INFO] Mapping ${CONJUR_FQDN} in /etc/hosts...${NC}"
 $SUDO sed -i "/${CONJUR_FQDN}/d" /etc/hosts
 echo "${PRIMARY_IP} ${CONJUR_FQDN}" | $SUDO tee -a /etc/hosts > /dev/null

@@ -40,7 +40,7 @@ NODE_CERT_DIR="${NODE_DATA_DIR}/certs"
 CONTAINER_CERT_DIR="/opt/cyberark/conjur/certs"
 
 # Target Hostname calculation for Leader
-TARGET_HOSTNAME="conjur-leader.${CONJUR_DOMAIN}"
+TARGET_HOSTNAME=$CONJUR_LEADER_FQDN
 
 # --- Step 3: Mandatory File Existence Check (Leader) ---
 for FILE in "$CA_CHAIN" "$MASTER_KEY" "$MASTER_CERT"; do
