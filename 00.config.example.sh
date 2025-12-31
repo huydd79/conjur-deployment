@@ -11,10 +11,12 @@ SUDO=
 CONTAINER_MGR=podman
 
 # --- Conjur Network Configuration ---
-LEADER_VIP=172.16.100.69        # Virtual/LB IP for Primary/Standby Cluster
-FOLLOWER_VIP=172.16.100.70      # Virtual/LB IP for Follower Cluster
 CONJUR_DOMAIN=poc.local
 CONJUR_HTTPS_PORT=443
+LEADER_VIP=172.16.100.69        # Virtual/LB IP for Primary/Standby Cluster
+FOLLOWER_VIP=172.16.100.69      # Virtual/LB IP for Follower Cluster
+CONJUR_LEADER_FQDN="conjur-leader.${CONJUR_DOMAIN}"
+CONJUR_FOLLOWER_FQDN="conjur-follower.${CONJUR_DOMAIN}"
 
 # --- Node Role Configuration ---
 NODE_TYPE="primary" # "primary" or "standby" or "follower"
