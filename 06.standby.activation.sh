@@ -17,16 +17,42 @@ echo -e "${YELLOW}--- Starting Step 06: Standby Activation Process ---${NC}"
 SSH_USER="root"
 CLUSTER_FQDN=$CONJUR_LEADER_FQDN
 
-# --- PRE-CHECK CLUSTER HEALTH ---
-echo -ne "${BLUE}[PRE-CHECK]${NC} Verifying Cluster VIP ($CLUSTER_FQDN)... "
-HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
+# ==========================================================
+# PRE-CHECK: API (443) & POSTGRES (5432)
+# ==========================================================
+echo -e "${BLUE}[PRE-CHECK]${NC} Verifying Cluster Connectivity ($CLUSTER_FQDN)..."
 
-if [[ "$HTTP_STATUS" != "200" ]]; then
+# 1. Check HTTPS Health (API Layer)
+echo -ne "  -> API Health (443): "
+HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
+if [[ "$HTTP_STATUS" == "200" ]]; then
+    echo -e "${GREEN}OK${NC}"
+else
     echo -e "${RED}FAILED (HTTP $HTTP_STATUS)${NC}"
-    echo -e "${YELLOW}[ERROR] Cannot proceed. Cluster VIP must be healthy to seed standbys.${NC}"
+    ERROR_FOUND=true
+fi
+
+# 2. Check Postgres Port (Replication Layer)
+echo -ne "  -> Postgres Port (5432): "
+# nc -z: scan mode, -w 3: timeout 3 seconds
+nc -z -w 3 "$CLUSTER_FQDN" 5432 > /dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    echo -e "${GREEN}OPEN${NC}"
+else
+    echo -e "${RED}CLOSED${NC}"
+    ERROR_FOUND=true
+fi
+
+# Final Decision for Pre-check
+if [[ "$ERROR_FOUND" == true ]]; then
+    echo -e "--------------------------------------------------------"
+    echo -e "${RED}[ERROR] Infrastructure Check Failed!${NC}"
+    echo -e "${YELLOW}[ADVICE]${NC} Ensure HAProxy is configured to proxy BOTH 443 and 5432."
+    echo -e "--------------------------------------------------------"
     exit 1
 fi
-echo -e "${GREEN}PASSED${NC}"
+echo -e "${GREEN}[SUCCESS] All Cluster ports are reachable. Proceeding...${NC}"
+# ==========================================================
 
 # --- Standby Activation Loop ---
 for i in "${!STANDBY_NODES[@]}"; do
