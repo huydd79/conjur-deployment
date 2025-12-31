@@ -16,7 +16,31 @@ fi
 echo -e "${YELLOW}--- Starting Step 12: Follower Activation (Internal CA Mode) ---${NC}"
 
 SSH_USER="root"
-PRIMARY_FQDN="${PRIMARY_NODE}.${CONJUR_DOMAIN}"
+CLUSTER_FQDN="conjur-leader.${CONJUR_DOMAIN}"
+
+# ==========================================================
+# NEW STEP: CLUSTER HEALTH PRE-CHECK
+# ==========================================================
+echo -ne "${BLUE}[PRE-CHECK]${NC} Verifying Cluster VIP Health ($CLUSTER_FQDN)... "
+
+# We check for HTTP 200 status code from the /health endpoint
+# -k: insecure (for lab certs), -s: silent, -o /dev/null: discard body, -w: output http code
+HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+    echo -e "${RED}FAILED (HTTP $HTTP_STATUS)${NC}"
+    echo -e "--------------------------------------------------------"
+    echo -e "${RED}[ERROR] Cluster VIP is NOT healthy or unreachable.${NC}"
+    echo -e "${YELLOW}[ACTION] Please check:${NC}"
+    echo -e "  1. HAProxy service status on your LB node."
+    echo -e "  2. DNS resolution for $CLUSTER_FQDN."
+    echo -e "  3. Leader nodes health status."
+    echo -e "--------------------------------------------------------"
+    exit 1
+    
+fi
+echo -e "${GREEN}PASSED${NC}"
+# ==========================================================
 
 for i in "${!FOLLOWER_NODES[@]}"; do
     F_NAME="${FOLLOWER_NODES[$i]}"
@@ -39,7 +63,7 @@ for i in "${!FOLLOWER_NODES[@]}"; do
     # 2. GENERATE SEED (Using Master Internal CA)
     echo -ne "  -> Generating Seed ... "
     # Redirect stderr (2) to /dev/null to prevent WARN logs from corrupting the binary tarball (stdout)
-    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed follower --replication-set full "${F_FQDN}" "${PRIMARY_FQDN}" 1> "${SEED_FILE}"
+    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed follower --replication-set full "${F_FQDN}" "${CLUSTER_FQDN}" 1> "${SEED_FILE}"
     
     if [[ ! -s "${SEED_FILE}" ]]; then
         echo -e "${RED}FAILED${NC}"
@@ -62,7 +86,7 @@ for i in "${!FOLLOWER_NODES[@]}"; do
         echo "     - Unpacking seed identity..."
         ${CONTAINER_MGR} exec ${F_NAME} evoke unpack seed /tmp/seed.tar.gz
         
-        echo "     - Configuring follower (Connecting to $PRIMARY_FQDN)..."
+        echo "     - Configuring follower (Connecting to $CLUSTER_FQDN)..."
         # Note: --force-new-id may be required if reconfiguring a previously used node
         ${CONTAINER_MGR} exec ${F_NAME} evoke configure follower
         

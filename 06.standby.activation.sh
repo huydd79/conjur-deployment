@@ -15,8 +15,20 @@ fi
 echo -e "${YELLOW}--- Starting Step 06: Standby Activation Process ---${NC}"
 
 SSH_USER="root"
-PRIMARY_FQDN="${PRIMARY_NODE}.${CONJUR_DOMAIN}"
+CLUSTER_FQDN="conjur-leader.${CONJUR_DOMAIN}"
 
+# --- PRE-CHECK CLUSTER HEALTH ---
+echo -ne "${BLUE}[PRE-CHECK]${NC} Verifying Cluster VIP ($CLUSTER_FQDN)... "
+HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+    echo -e "${RED}FAILED (HTTP $HTTP_STATUS)${NC}"
+    echo -e "${YELLOW}[ERROR] Cannot proceed. Cluster VIP must be healthy to seed standbys.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}PASSED${NC}"
+
+# --- Standby Activation Loop ---
 for i in "${!STANDBY_NODES[@]}"; do
     S_NAME="${STANDBY_NODES[$i]}"
     S_FQDN="${S_NAME}.${CONJUR_DOMAIN}"
@@ -38,7 +50,7 @@ for i in "${!STANDBY_NODES[@]}"; do
     # 2. GENERATE STANDBY SEED
     echo -ne "  -> Generating Standby Seed (Binary Clean)... "
     # Ensure binary integrity by redirecting stderr to dev/null
-    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed standby "${S_FQDN}" "${PRIMARY_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
+    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed standby "${S_FQDN}" "${CLUSTER_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
     
     if [[ ! -s "${SEED_FILE}" ]]; then
         echo -e "${RED}FAILED to generate seed file!${NC}"

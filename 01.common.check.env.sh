@@ -36,7 +36,7 @@ if [ -x "$(command -v dnf)" ]; then
     INSTALL_CMD="dnf install -y"
     if [ -f /etc/redhat-release ]; then
         echo -e "${BLUE}[INFO]${NC} RHEL system detected. Ensuring EPEL repository is enabled..."
-        $SUDO $INSTALL_CMD https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm &> /dev/null
+        $SUDO $INSTALL_CMD https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm
     fi
 elif [ -x "$(command -v apt-get)" ]; then
     PKG_MANAGER="apt-get"
@@ -55,7 +55,7 @@ for PKG in "${REQUIRED_PKGS[@]}"; do
         echo -e "${GREEN}Installed${NC}"
     else
         echo -e "${YELLOW}Missing. Installing...${NC}"
-        $SUDO $INSTALL_CMD "$PKG" &> /dev/null
+        $SUDO $INSTALL_CMD "$PKG"
         if [ $? -ne 0 ]; then
             echo -e "${RED}[ERROR] Failed to install ${PKG}.${NC}"
             exit 1
@@ -72,7 +72,7 @@ else
     if [[ "$CONTAINER_MGR" == "podman" ]]; then
         $SUDO $INSTALL_CMD podman &> /dev/null
     elif [[ "$CONTAINER_MGR" == "docker" ]]; then
-        [[ "$PKG_MANAGER" == "apt-get" ]] && $SUDO $INSTALL_CMD docker.io &> /dev/null || $SUDO $INSTALL_CMD docker &> /dev/null
+        [[ "$PKG_MANAGER" == "apt-get" ]] && $SUDO $INSTALL_CMD docker.io || $SUDO $INSTALL_CMD docker 
     fi
     
     if command -v "$CONTAINER_MGR" &> /dev/null; then
@@ -105,6 +105,16 @@ add_or_update_host_entry() {
     fi
 }
 
+# Add Leader VIP Entry
+CLUSTER_NAME="conjur-leader" 
+if [ -n "$LEADER_VIP" ] && [ -n "$CLUSTER_NAME" ]; then
+    add_or_update_host_entry "$LEADER_VIP" "$CLUSTER_NAME"
+else
+    echo -e "${RED}[ERROR] LEADER_VIP or CLUSTER_NAME is undefined in 00.config.sh${NC}"
+    exit 1
+fi
+
+# Add Primary Node Entry
 if [ -n "$PRIMARY_IP" ] && [ -n "$PRIMARY_NODE" ]; then
     add_or_update_host_entry "$PRIMARY_IP" "$PRIMARY_NODE"
 else
