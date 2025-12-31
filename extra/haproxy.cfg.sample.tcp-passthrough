@@ -1,0 +1,89 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    chroot /var/lib/haproxy
+    stats socket /var/lib/haproxy/admin.sock mode 660 level admin
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+
+defaults
+    log     global
+    mode    tcp
+    option  tcplog
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
+
+# 1. Management Stats (8404)
+listen stats
+    bind *:8404
+    mode http
+    stats enable
+    stats uri /stats
+    stats refresh 10s
+
+# 2. HTTPS Frontend (Port 443) - API & UI Access
+frontend conjur_https_frontend
+    bind *:443
+    mode tcp
+    tcp-request inspect-delay 5s
+    tcp-request content accept if { req_ssl_hello_type 1 }
+
+    use_backend conjur_leaders if { req_ssl_sni -i conjur.poc.local } || { req_ssl_sni -i conjur-leader.poc.local }
+    use_backend conjur_followers if { req_ssl_sni -i conjur-follower.poc.local }
+    default_backend conjur_leaders
+
+# 3. Backend Leaders - Using Port 444 for simplified Health Check
+backend conjur_leaders
+    mode tcp
+    balance leastconn
+    # Optimization: Use HTTP on port 444 instead of HTTPS on 443 for health check
+    option httpchk GET /health
+    http-check expect string master
+    
+    server cjl100062 cjl100062.poc.local:443 check port 444 inter 2000 fall 3 rise 2
+    server cjl100063 cjl100063.poc.local:443 check port 444 inter 2000 fall 3 rise 2
+    server cjl100064 cjl100064.poc.local:443 check port 444 inter 2000 fall 3 rise 2
+
+# 4. Backend Followers - Using Port 444 for simplified Health Check
+backend conjur_followers
+    mode tcp
+    balance roundrobin
+    option httpchk GET /health
+    http-check expect string follower
+    
+    server cjf100066 cjf100066.poc.local:443 check port 444 inter 2000
+    server cjf100067 cjf100067.poc.local:443 check port 444 inter 2000
+
+# 5. Postgres Replication (Port 5432)
+frontend conjur_db_frontend
+    bind *:5432
+    mode tcp
+    default_backend conjur_db_backend
+
+backend conjur_db_backend
+    mode tcp
+    balance leastconn
+    option httpchk GET /health
+    http-check expect string master
+    server cjl100062 cjl100062.poc.local:5432 check port 444 inter 2000
+    server cjl100063 cjl100063.poc.local:5432 check port 444 inter 2000
+    server cjl100064 cjl100064.poc.local:5432 check port 444 inter 2000
+
+# 6. Syslog-NG Audit Stream (Port 1999)
+# Followers stream audit events to the Leader via this port
+frontend conjur_audit_frontend
+    bind *:1999
+    mode tcp
+    default_backend conjur_audit_backend
+
+backend conjur_audit_backend
+    mode tcp
+    balance leastconn
+    option httpchk GET /health
+    http-check expect string master
+    server cjl100062 cjl100062.poc.local:1999 check port 444 inter 2000
+    server cjl100063 cjl100063.poc.local:1999 check port 444 inter 2000
+    server cjl100064 cjl100064.poc.local:1999 check port 444 inter 2000
