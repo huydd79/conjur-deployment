@@ -47,7 +47,7 @@ else
 fi
 
 # --- 3. Define and Install Required Packages ---
-REQUIRED_PKGS=("jq" "curl" "openssl" "ca-certificates" "pv")
+REQUIRED_PKGS=("jq" "curl" "openssl" "ca-certificates" "pv" "nc" "tar")
 
 for PKG in "${REQUIRED_PKGS[@]}"; do
     echo -ne "${CYAN}[CHECK]${NC} Checking for ${PKG}... "
