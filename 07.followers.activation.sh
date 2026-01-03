@@ -78,7 +78,7 @@ for i in "${!FOLLOWER_NODES[@]}"; do
     # 1. CHECK READINESS & ROLE
     echo -ne "  -> Checking readiness & node role... "
     # Verify SSH connectivity and ensure the remote appliance is in 'blank' state
-    if ! ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=3 "${SSH_USER}@${F_FQDN}" "$CONTAINER_MGR exec ${F_NAME} evoke role show" | grep -q "blank"; then
+    if ! ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=3 "${SSH_USER}@${F_FQDN}" "$CONTAINER_MGR exec ${CONTAINER_NAME} evoke role show" | grep -q "blank"; then
         echo -e "${RED}NOT BLANK OR UNREACHABLE${NC} (Skipping)"
         continue
     fi
@@ -87,7 +87,7 @@ for i in "${!FOLLOWER_NODES[@]}"; do
     # 2. GENERATE SEED (Using Master Internal CA)
     echo -ne "  -> Generating Seed ... "
     # Redirect stderr (2) to /dev/null to prevent WARN logs from corrupting the binary tarball (stdout)
-    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed follower --replication-set full "${F_FQDN}" "${CLUSTER_FQDN}" 1> "${SEED_FILE}"
+    $CONTAINER_MGR exec "${CONTAINER_NAME}" evoke seed follower --replication-set full "${F_FQDN}" "${CLUSTER_FQDN}" 1> "${SEED_FILE}"
     
     if [[ ! -s "${SEED_FILE}" ]]; then
         echo -e "${RED}FAILED${NC}"
@@ -105,14 +105,14 @@ for i in "${!FOLLOWER_NODES[@]}"; do
     ssh -o StrictHostKeyChecking=no "${SSH_USER}@${F_FQDN}" "bash -s" << EOF
         set -e
         # Copy seed from host into the appliance container
-        ${CONTAINER_MGR} cp /tmp/${F_NAME}_seed.tar.gz ${F_NAME}:/tmp/seed.tar.gz
+        ${CONTAINER_MGR} cp /tmp/${F_NAME}_seed.tar.gz ${CONTAINER_NAME}:/tmp/seed.tar.gz
         
         echo "     - Unpacking seed identity..."
-        ${CONTAINER_MGR} exec ${F_NAME} evoke unpack seed /tmp/seed.tar.gz
+        ${CONTAINER_MGR} exec ${CONTAINER_NAME} evoke unpack seed /tmp/seed.tar.gz
         
         echo "     - Configuring follower (Connecting to $CLUSTER_FQDN)..."
         # Note: --force-new-id may be required if reconfiguring a previously used node
-        ${CONTAINER_MGR} exec ${F_NAME} evoke configure follower
+        ${CONTAINER_MGR} exec ${CONTAINER_NAME} evoke configure follower
         
         # Cleanup temporary seed on remote host
         rm -f /tmp/${F_NAME}_seed.tar.gz

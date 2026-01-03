@@ -78,7 +78,7 @@ for i in "${!STANDBY_NODES[@]}"; do
     # 1. CHECK READINESS & ROLE
     echo -ne "  -> Checking connectivity & node role... "
     # Check if the host is reachable and the container is in 'blank' state
-    if ! ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=3 "${SSH_USER}@${S_FQDN}" "$CONTAINER_MGR exec ${S_NAME} evoke role show" | grep -q "blank"; then
+    if ! ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=3 "${SSH_USER}@${S_FQDN}" "$CONTAINER_MGR exec ${CONTAINER_NAME} evoke role show" | grep -q "blank"; then
         echo -e "${RED}NOT BLANK OR UNREACHABLE${NC} (Skipping)"
         continue
     fi
@@ -87,7 +87,7 @@ for i in "${!STANDBY_NODES[@]}"; do
     # 2. GENERATE STANDBY SEED
     echo -ne "  -> Generating Standby Seed ... "
     # Ensure binary integrity by redirecting stderr to dev/null
-    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed standby "${S_FQDN}" "${LEADER_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
+    $CONTAINER_MGR exec "${CONTAINER_NAME}" evoke seed standby "${S_FQDN}" "${LEADER_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
     
     if [[ ! -s "${SEED_FILE}" ]]; then
         echo -e "${RED}FAILED to generate seed file!${NC}"
@@ -106,13 +106,13 @@ for i in "${!STANDBY_NODES[@]}"; do
         set -e
         # Copy seed from host into the appliance container
         echo "     - Loading seed into container..."
-        ${CONTAINER_MGR} cp /tmp/${S_NAME}_seed.tar.gz ${S_NAME}:/tmp/seed.tar.gz
+        ${CONTAINER_MGR} cp /tmp/${S_NAME}_seed.tar.gz ${CONTAINER_NAME}:/tmp/seed.tar.gz
         
         echo "     - Unpacking standby seed..."
-        ${CONTAINER_MGR} exec ${S_NAME} evoke unpack seed /tmp/seed.tar.gz 2>&1
+        ${CONTAINER_MGR} exec ${CONTAINER_NAME} evoke unpack seed /tmp/seed.tar.gz 2>&1
         
         echo "     - Configuring standby role..."
-        ${CONTAINER_MGR} exec ${S_NAME} evoke configure standby 2>&1
+        ${CONTAINER_MGR} exec ${CONTAINER_NAME} evoke configure standby 2>&1
         
         # Local cleanup on the remote host
         rm -f /tmp/${S_NAME}_seed.tar.gz
