@@ -27,16 +27,16 @@ BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; CY
 
 case "\$1" in
     start)
-        echo -e "\${BLUE}[INFO]\${NC} Starting Conjur container: $NODE_NAME..."
-        $SUDO $CONTAINER_MGR start $NODE_NAME
+        echo -e "\${BLUE}[INFO]\${NC} Starting Conjur container: $CONTAINER_NAME..."
+        $SUDO $CONTAINER_MGR start $CONTAINER_NAME
         ;;
     stop)
-        echo -e "\${YELLOW}[INFO]\${NC} Stopping Conjur container: $NODE_NAME..."
-        $SUDO $CONTAINER_MGR stop $NODE_NAME
+        echo -e "\${YELLOW}[INFO]\${NC} Stopping Conjur container: $CONTAINER_NAME..."
+        $SUDO $CONTAINER_MGR stop $NCONTAINER_NAME
         ;;
     restart)
-        echo -e "\${BLUE}[INFO]\${NC} Restarting Conjur container: $NODE_NAME..."
-        $SUDO $CONTAINER_MGR restart $NODE_NAME
+        echo -e "\${BLUE}[INFO]\${NC} Restarting Conjur container: $CONTAINER_NAME..."
+        $SUDO $CONTAINER_MGR restart $CONTAINER_NAME
         ;;
     status)
         echo -e "\${CYAN}========================================================\${NC}"
@@ -44,13 +44,13 @@ case "\$1" in
         echo -e "\${CYAN}========================================================\${NC}"
         
         # Check Container Runtime Status
-        CONTAINER_STATUS=\$($SUDO $CONTAINER_MGR inspect $NODE_NAME --format '{{.State.Status}}' 2>/dev/null)
+        CONTAINER_STATUS=\$($SUDO $CONTAINER_MGR inspect $CONTAINER_NAME --format '{{.State.Status}}' 2>/dev/null)
         
         if [ "\$CONTAINER_STATUS" == "running" ]; then
             echo -e " Container State : \${GREEN}RUNNING\${NC}"
             
             # Detect Internal Conjur Role
-            RAW_ROLE=\$($SUDO $CONTAINER_MGR exec $NODE_NAME evoke role show 2>/dev/null)
+            RAW_ROLE=\$($SUDO $CONTAINER_MGR exec $CONTAINER_NAME evoke role show 2>/dev/null)
             
             case "\$RAW_ROLE" in
                 master)
@@ -74,13 +74,13 @@ case "\$1" in
             echo -e "--------------------------------------------------------"
             
             # Display core service status from evoke
-            $SUDO $CONTAINER_MGR exec $NODE_NAME evoke status 2>/dev/null | grep -E "status|database"
+            $SUDO $CONTAINER_MGR exec $CONTAINER_NAME evoke status 2>/dev/null | grep -E "status|database"
         else
             echo -e " Container State : \${RED}\${CONTAINER_STATUS^^}\${NC}"
             echo -e " Conjur Role     : \${RED}OFFLINE\${NC}"
         fi
         echo -e "--------------------------------------------------------"
-        $SUDO $CONTAINER_MGR ps -f name=$NODE_NAME
+        $SUDO $CONTAINER_MGR ps -f name=$CONTAINER_NAME
         ;;
     *)
         echo -e "Usage: conjur-ctl {start|stop|restart|status}"

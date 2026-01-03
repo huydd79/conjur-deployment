@@ -28,6 +28,9 @@ PRIMARY_IP=172.16.100.62
 STANDBY_NODES=("cjl100063" "cjl100064")
 STANDBY_IPS=("172.16.100.63" "172.16.100.64")
 
+CLUSTER_NAME="poc-cluster"
+CLUSTER_TTL="300"           # in seconds
+
 # --- Follower Nodes Configuration ---
 FOLLOWER_NODES=("cjf100066" "cjf100067")
 FOLLOWER_IPS=("172.16.100.66" "172.16.100.67")
@@ -40,6 +43,9 @@ CONJUR_ACCOUNT=POC
 UPLOAD_DIR=/opt/upload
 CONJUR_APPLIANCE_FILE=conjur-appliance-Rls-v13.7.0.tar.gz
 CONJUR_VERSION=13.7.0
+
+CONTAINER_NAME="conjur"
+NODE_DATA_DIR="/opt/cyberark/$CONTAINER_NAME"
 
 # --- Configuration Header ---
 # --- ANSI Color Codes for Professional Output ---

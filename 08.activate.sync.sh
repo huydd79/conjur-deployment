@@ -16,7 +16,7 @@ echo -e "${YELLOW}--- Phase 1: Activating Synchronous Replication ---${NC}"
 # According to v13.7 documentation: 'evoke replication sync start'
 # We use --force to bypass the 2-standby recommendation check for lab environments.
 echo -e "${BLUE}[INFO]${NC} Executing: evoke replication sync start --force"
-$SUDO $CONTAINER_MGR exec "$NODE_NAME" evoke replication sync start --force
+$SUDO $CONTAINER_MGR exec "$CONTAINER_NAME" evoke replication sync start --force
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}[SUCCESS] Synchronous mode activated.${NC}"

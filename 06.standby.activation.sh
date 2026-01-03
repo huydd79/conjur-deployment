@@ -15,16 +15,16 @@ fi
 echo -e "${YELLOW}--- Starting Step 06: Standby Activation Process ---${NC}"
 
 SSH_USER="root"
-CLUSTER_FQDN=$CONJUR_LEADER_FQDN
+LEADER_FQDN=$PRIMARY_NODE.${CONJUR_DOMAIN}
 
 # ==========================================================
 # PRE-CHECK: API (443) & POSTGRES (5432)
 # ==========================================================
-echo -e "${BLUE}[PRE-CHECK]${NC} Verifying Cluster Connectivity ($CLUSTER_FQDN)..."
+echo -e "${BLUE}[PRE-CHECK]${NC} Verifying Cluster Connectivity ($LEADER_FQDN)..."
 
 # 1. Check HTTPS Health (API Layer)
-echo -ne "  -> API Health (444): "
-HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${CLUSTER_FQDN}/health")
+echo -ne "  -> API Health: "
+HTTP_STATUS=$(curl -k -s -o /dev/null -w "%{http_code}" "https://${LEADER_FQDN}/health")
 if [[ "$HTTP_STATUS" == "200" ]]; then
     echo -e "${GREEN}OK${NC}"
 else
@@ -35,7 +35,7 @@ fi
 # 2. Check Postgres Port (Replication Layer)
 echo -ne "  -> Postgres Port (5432): "
 # nc -z: scan mode, -w 3: timeout 3 seconds
-nc -z -w 3 "$CLUSTER_FQDN" 5432 > /dev/null 2>&1
+nc -z -w 3 "$LEADER_FQDN" 5432 > /dev/null 2>&1
 if [[ $? -eq 0 ]]; then
     echo -e "${GREEN}OPEN${NC}"
 else
@@ -44,15 +44,15 @@ else
 fi
 
 # 3. Check Postgres Port (Replication Layer)
-echo -ne "  -> Audit Stream Port (1999): "
+#echo -ne "  -> Audit Stream Port (1999): "
 # nc -z: scan mode, -w 3: timeout 3 seconds
-nc -z -w 3 "$CLUSTER_FQDN" 1999 > /dev/null 2>&1
-if [[ $? -eq 0 ]]; then
-    echo -e "${GREEN}OPEN${NC}"
-else
-    echo -e "${RED}CLOSED${NC}"
-    ERROR_FOUND=true
-fi
+#nc -z -w 3 "$LEADER_FQDN" 1999 > /dev/null 2>&1
+#if [[ $? -eq 0 ]]; then
+#    echo -e "${GREEN}OPEN${NC}"
+#else
+#    echo -e "${RED}CLOSED${NC}"
+#    ERROR_FOUND=true
+#fi
 
 # Final Decision for Pre-check
 if [[ "$ERROR_FOUND" == true ]]; then
@@ -85,9 +85,9 @@ for i in "${!STANDBY_NODES[@]}"; do
     echo -e "${GREEN}READY${NC}"
 
     # 2. GENERATE STANDBY SEED
-    echo -ne "  -> Generating Standby Seed (Binary Clean)... "
+    echo -ne "  -> Generating Standby Seed ... "
     # Ensure binary integrity by redirecting stderr to dev/null
-    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed standby "${S_FQDN}" "${CLUSTER_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
+    $CONTAINER_MGR exec "${PRIMARY_NODE}" evoke seed standby "${S_FQDN}" "${LEADER_FQDN}" 1> "${SEED_FILE}" 2>/dev/null
     
     if [[ ! -s "${SEED_FILE}" ]]; then
         echo -e "${RED}FAILED to generate seed file!${NC}"

@@ -35,7 +35,7 @@ CA_CHAIN="ca-chain.pem"
 MASTER_KEY="master-key.pem"
 MASTER_CERT="master-cert.pem"
 
-NODE_DATA_DIR="/opt/cyberark/$NODE_NAME"
+NODE_DATA_DIR="/opt/cyberark/$CONTAINER_NAME"
 NODE_CERT_DIR="${NODE_DATA_DIR}/certs"
 CONTAINER_CERT_DIR="/opt/cyberark/conjur/certs"
 
@@ -82,11 +82,11 @@ echo -e "${BLUE}[INFO] Importing certificates into Conjur container...${NC}"
 
 # 6.1 Import Root CA
 echo "  -> Importing Root CA Chain..."
-$SUDO $CONTAINER_MGR exec "$NODE_NAME" evoke ca import --no-restart --root --force "${CONTAINER_CERT_DIR}/${CA_CHAIN}"
+$SUDO $CONTAINER_MGR exec "$CONTAINER_NAME" evoke ca import --no-restart --root --force "${CONTAINER_CERT_DIR}/${CA_CHAIN}"
 
 # 6.2 Import and Set Leader HTTPS Certificate
 echo "  -> Setting Leader HTTPS Identity..."
-$SUDO $CONTAINER_MGR exec "$NODE_NAME" evoke ca import --no-restart \
+$SUDO $CONTAINER_MGR exec "$CONTAINER_NAME" evoke ca import --no-restart \
     --key "${CONTAINER_CERT_DIR}/${MASTER_KEY}" \
     --set \
     "${CONTAINER_CERT_DIR}/${MASTER_CERT}"
@@ -102,7 +102,7 @@ for CERT_PATH in "${LOCAL_CERT_DIR}"/follower-*-cert.pem; do
     
     if [ -f "${LOCAL_CERT_DIR}/$KEY_FILE_NAME" ]; then
         echo "     - Found: $FILE_NAME"
-        $SUDO $CONTAINER_MGR exec "$NODE_NAME" evoke ca import --no-restart \
+        $SUDO $CONTAINER_MGR exec "$CONTAINER_NAME" evoke ca import --no-restart \
             --key "${CONTAINER_CERT_DIR}/$KEY_FILE_NAME" \
             "${CONTAINER_CERT_DIR}/$FILE_NAME"
     else
@@ -112,7 +112,7 @@ done
 
 # --- Step 7: Restart & Health Check ---
 echo -e "${BLUE}[INFO] Restarting services to apply new certificates...${NC}"
-$SUDO $CONTAINER_MGR exec "$NODE_NAME" sv restart conjur nginx pg seed
+$SUDO $CONTAINER_MGR exec "$CONTAINER_NAME" sv restart conjur nginx pg seed
 
 echo -e "${CYAN}--- Final Verification ---${NC}"
 sleep 10
@@ -125,7 +125,7 @@ if [ "$HEALTH_CHECK" == "true" ]; then
     echo -e "${YELLOW}[SECURITY] Cleaning up PEM files from node storage...${NC}"
     $SUDO rm -f "${NODE_CERT_DIR}"/*.pem
 else
-    echo -e "${RED}[ERROR] Health check failed. Check logs: $CONTAINER_MGR logs $NODE_NAME${NC}"
+    echo -e "${RED}[ERROR] Health check failed. Check logs: $CONTAINER_MGR logs $CONTAINER_NAME${NC}"
     exit 1
 fi
 

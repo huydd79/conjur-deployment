@@ -29,38 +29,40 @@ else
     echo -e "${GREEN}Found: ${FULL_IMAGE_TAG}${NC}"
 fi
 
-echo -e "${BLUE}[INFO] Cleaning up existing container: ${NODE_NAME}...${NC}"
-$SUDO $CONTAINER_MGR stop "$NODE_NAME" &> /dev/null
-$SUDO $CONTAINER_MGR rm -f "$NODE_NAME" &> /dev/null
+echo -e "${BLUE}[INFO] Cleaning up existing container: ${CONTAINER_NAME}...${NC}"
+$SUDO $CONTAINER_MGR stop "$CONTAINER_NAME" &> /dev/null
+$SUDO $CONTAINER_MGR rm -f "$CONTAINER_NAME" &> /dev/null
 
-NODE_DATA_DIR="/opt/cyberark/$NODE_NAME"
 echo -e "${BLUE}[INFO] Preparing persistent volumes in ${NODE_DATA_DIR}...${NC}"
 
 $SUDO mkdir -p "${NODE_DATA_DIR}"/{security,config,backups,seeds,logs,certs}
-$SUDO chmod o+x "${NODE_DATA_DIR}/config"
-
+$SUDO touch "${NODE_DATA_DIR}"/config/conjur.yml
+$SUDO chmod o+x "${NODE_DATA_DIR}"/config
+$SUDO chmod o+r "${NODE_DATA_DIR}"/config/conjur.yml
+$SUDO cp ./policies/secomp.json "${NODE_DATA_DIR}"/security
 echo -e "${BLUE}[INFO] Starting Conjur container...${NC}"
 
 $SUDO $CONTAINER_MGR run \
-    --name "$NODE_NAME" \
+    --name "$CONTAINER_NAME" \
     --detach \
     --restart=unless-stopped \
-    --security-opt seccomp=unconfined \
+    --security-opt seccomp=/opt/cyberark/conjur/security/secomp.json \
     --publish "$CONJUR_HTTPS_PORT:443" \
     --publish "444:444" \
     --publish "5432:5432" \
     --publish "1999:1999" \
     --cap-add AUDIT_WRITE \
-    --volume "${NODE_DATA_DIR}/config:/etc/conjur/config:Z" \
-    --volume "${NODE_DATA_DIR}/security:/opt/cyberark/conjur/security:Z" \
-    --volume "${NODE_DATA_DIR}/backups:/opt/conjur/backup:Z" \
+    --log-driver journald \
+    --volume "${NODE_DATA_DIR}/config:/etc/conjur/config:z" \
+    --volume "${NODE_DATA_DIR}/security:/opt/cyberark/conjur/security:z" \
+    --volume "${NODE_DATA_DIR}/backups:/opt/conjur/backup:z" \
     --volume "${NODE_DATA_DIR}/seeds:/opt/cyberark/conjur/seeds:Z" \
-    --volume "${NODE_DATA_DIR}/logs:/var/log/conjur:Z" \
-    --volume "${NODE_DATA_DIR}/certs:/opt/cyberark/conjur/certs:Z" \
+    --volume "${NODE_DATA_DIR}/logs:/var/log/conjur:z" \
+    --volume "${NODE_DATA_DIR}/certs:/opt/cyberark/conjur/certs:z" \
     "$FULL_IMAGE_TAG"
 
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}[SUCCESS] Conjur container '${NODE_NAME}' is running.${NC}"
+    echo -e "${GREEN}[SUCCESS] Conjur container '${CONTAINER_NAME}' is running.${NC}"
     echo -e "${BLUE}[INFO] Node is ready for 'evoke configure leader' OR 'evoke unpack seed'.${NC}"
 else
     echo -e "${RED}[ERROR] Failed to start Conjur container.${NC}"
@@ -68,4 +70,4 @@ else
 fi
 
 echo -e "${CYAN}--- Container Status ---${NC}"
-$SUDO $CONTAINER_MGR ps | grep "$NODE_NAME"
+$SUDO $CONTAINER_MGR ps | grep "$CONTAINER_NAME"
