@@ -4,9 +4,11 @@
 .sync_creds.txt
 
 # Ignore sensitive keys and certificates
-certs/*.pem
-master.key
+*.pem
+*.key
 *.enc
+*.bk
+*.log
 
 # Ignore logs and backups
 logs/

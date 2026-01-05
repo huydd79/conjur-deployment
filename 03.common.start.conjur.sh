@@ -1,7 +1,7 @@
 #!/bin/bash
 # Author: Huy Do (huy.do@cyberark.com)
-# Date: December 31, 2025
-# Description: Unified script to start Conjur Appliance for both Primary and Standby.
+# Date: January 05, 2026 (Updated)
+# Description: Unified script to start Conjur Appliance and configure systemd persistence.
 
 if [ -f "./00.config.sh" ]; then
     source ./00.config.sh
@@ -46,7 +46,7 @@ $SUDO $CONTAINER_MGR run \
     --name "$CONTAINER_NAME" \
     --detach \
     --restart=unless-stopped \
-    --security-opt seccomp=/opt/cyberark/conjur/security/secomp.json \
+    --security-opt seccomp="${NODE_DATA_DIR}/security/secomp.json" \
     --publish "$CONJUR_HTTPS_PORT:443" \
     --publish "444:444" \
     --publish "5432:5432" \
@@ -63,11 +63,55 @@ $SUDO $CONTAINER_MGR run \
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}[SUCCESS] Conjur container '${CONTAINER_NAME}' is running.${NC}"
-    echo -e "${BLUE}[INFO] Node is ready for 'evoke configure leader' OR 'evoke unpack seed'.${NC}"
 else
     echo -e "${RED}[ERROR] Failed to start Conjur container.${NC}"
     exit 1
 fi
 
-echo -e "${CYAN}--- Container Status ---${NC}"
+# --- NEW: Step 11 - Create systemd service for Podman ---
+if [ "$CONTAINER_MGR" == "podman" ]; then
+    echo -e "${YELLOW}--- Step 11: Create systemd service for Podman ---${NC}"
+    
+    CONTAINER_ID=$($SUDO podman ps --filter "name=$CONTAINER_NAME" --format "{{.ID}}")
+    SERVICE_FILE="/etc/systemd/system/conjur.service"
+
+    echo -e "${BLUE}[INFO]${NC} Generating systemd unit for Container ID: ${CONTAINER_ID}"
+    
+    # Generate and save the service file
+    $SUDO podman generate systemd "$CONTAINER_ID" \
+        --name \
+        --container-prefix="" \
+        --separator="" | $SUDO tee "$SERVICE_FILE" > /dev/null
+
+    echo -e "${BLUE}[INFO]${NC} Enabling and starting conjur.service..."
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl enable conjur.service
+    
+    # Cần restart để systemd thực sự nắm quyền quản lý container
+    $SUDO systemctl restart conjur.service
+    
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}[SUCCESS] systemd service 'conjur.service' is active.${NC}"
+    else
+        echo -e "${RED}[ERROR] Failed to initialize systemd service.${NC}"
+    fi
+fi
+
+# --- NEW: Step 12 - Persist user processes (Linger) ---
+echo -e "${YELLOW}--- Step 12: Persist user processes ---${NC}"
+echo -e "${BLUE}[INFO]${NC} Enabling linger for root user..."
+$SUDO loginctl enable-linger root
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}[SUCCESS] Linger enabled for root.${NC}"
+else
+    echo -e "${RED}[WARNING] Failed to enable linger.${NC}"
+fi
+
+echo -e "\n${GREEN}================================================================${NC}"
+echo -e "${GREEN}  Initialization Complete!${NC}"
+echo -e "${BLUE}  Node is ready for 'evoke configure leader' OR 'evoke unpack seed'.${NC}"
+echo -e "${GREEN}================================================================${NC}"
+
+echo -e "${CYAN}--- Final Container Status ---${NC}"
 $SUDO $CONTAINER_MGR ps | grep "$CONTAINER_NAME"
