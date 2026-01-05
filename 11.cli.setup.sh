@@ -50,7 +50,7 @@ fi
 CONJUR_FQDN=$CONJUR_LEADER_FQDN
 echo -e "${BLUE}[INFO] Mapping ${CONJUR_FQDN} in /etc/hosts...${NC}"
 $SUDO sed -i "/${CONJUR_FQDN}/d" /etc/hosts
-echo "${PRIMARY_IP} ${CONJUR_FQDN}" | $SUDO tee -a /etc/hosts > /dev/null
+echo "${LEADER_VIP} ${CONJUR_FQDN}" | $SUDO tee -a /etc/hosts > /dev/null
 
 # --- Step 5: Initialize CLI ---
 echo -e "${BLUE}[INFO] Initializing CLI with official parameters...${NC}"
