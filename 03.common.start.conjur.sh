@@ -36,9 +36,9 @@ $SUDO $CONTAINER_MGR rm -f "$CONTAINER_NAME" &> /dev/null
 echo -e "${BLUE}[INFO] Preparing persistent volumes in ${NODE_DATA_DIR}...${NC}"
 
 $SUDO mkdir -p "${NODE_DATA_DIR}"/{security,config,backups,seeds,logs,certs}
-#$SUDO touch "${NODE_DATA_DIR}"/config/conjur.yml
-#$SUDO chmod o+x "${NODE_DATA_DIR}"/config
-#$SUDO chmod o+r "${NODE_DATA_DIR}"/config/conjur.yml
+$SUDO touch "${NODE_DATA_DIR}"/config/conjur.yml
+$SUDO chmod o+x "${NODE_DATA_DIR}"/config
+$SUDO chmod o+r "${NODE_DATA_DIR}"/config/conjur.yml
 SECOMP="seccomp=${NODE_DATA_DIR}/security/secomp.json"  #For UAT: using seccomp=unconfined #
 
 $SUDO cp ./policies/secomp.json "${NODE_DATA_DIR}"/security
