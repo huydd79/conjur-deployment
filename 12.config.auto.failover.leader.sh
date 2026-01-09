@@ -17,7 +17,7 @@ if [ "$READY" = false ]; then
 fi
 
 # --- Local Variables ---
-mkidr -p tmp
+mkdir -p tmp
 POLICY_FILE="tmp/cluster-failover-policy.yml"
 LEADER_FQDN=$PRIMARY_NODE.${CONJUR_DOMAIN}
 
