@@ -43,8 +43,7 @@ fi
 # --- 3. Offline Installation Logic ---
 echo -e "${BLUE}[INFO]${NC} Installing dependencies from local RPM directory..."
 
-# Chúng ta sử dụng dnf install trên toàn bộ thư mục để dnf tự giải quyết các phụ thuộc chéo giữa các file RPM local.
-$SUDO dnf install -y "$RPM_DIR"/*.rpm
+$SUDO dnf install -y "$RPM_DIR"/*.rpm --disablerepo=* --disableplugin=subscription-manager
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}[SUCCESS] Local RPM installation completed.${NC}"
@@ -54,7 +53,6 @@ else
 fi
 
 # --- 4. Verify Required Tools ---
-# Lưu ý: 'nc' được cung cấp bởi gói nmap-ncat
 REQUIRED_TOOLS=("jq" "curl" "openssl" "pv" "nc" "tar" "$CONTAINER_MGR")
 
 for TOOL in "${REQUIRED_TOOLS[@]}"; do
@@ -68,7 +66,7 @@ for TOOL in "${REQUIRED_TOOLS[@]}"; do
     fi
 done
 
-# --- 5. SMART HOST UPDATE LOGIC (Giữ nguyên vì đây là thao tác local) ---
+# --- 5. SMART HOST UPDATE LOGIC ---
 echo -e "${CYAN}[PROCESS]${NC} Synchronizing /etc/hosts with cluster configuration..."
 
 add_or_update_host_entry() {
